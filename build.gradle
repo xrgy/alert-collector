@@ -1,5 +1,5 @@
 group 'alert-collector'
-version '1.0-SNAPSHOT'
+version '1.0'
 
 apply plugin: 'java'
 apply plugin: 'war'
@@ -25,3 +25,23 @@ dependencies {
     compile group: 'org.springframework.boot', name: 'spring-boot-starter-jdbc', version: '1.5.6.RELEASE'
     compile group: 'org.json', name: 'json', version: '20160810'
 }
+
+jar {
+    String someString = ''
+    configurations.runtime.each { someString = someString + "lib/" + it.name+" "}
+    manifest {
+//        attributes 'Main-Class': 'org.springframework.boot.SpringApplication'
+        attributes 'Main-Class': 'com.gy.alertCollector.BingoApplication'
+        attributes 'Class-Path': someString
+    }
+    into('lib'){
+        from configurations.runtime
+    }
+}
+
+
+task copyJar(type:Copy){
+    from configurations.runtime
+    into ('lib')
+}
+

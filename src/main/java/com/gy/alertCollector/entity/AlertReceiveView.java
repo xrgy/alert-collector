@@ -21,4 +21,10 @@ public class AlertReceiveView {
 
     @JsonProperty("alerts")
     private List<WebhookAlertEntity> alerts;
+
+    @JsonProperty("version")
+    private String verion;
+
+    @JsonProperty("groupKey")
+    private String groupKey;
 }

@@ -44,7 +44,7 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
 
 
     ApplicationContext acxt =
-            new ClassPathXmlApplicationContext("/i18n/spring-mvc.xml");
+            new ClassPathXmlApplicationContext("/spring-mvc.xml");
 
     @Override
     public TestEntity getJPAInfo() {

@@ -1,5 +1,7 @@
 package com.gy.alertCollector.util;
 
+import org.springframework.stereotype.Component;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -7,6 +9,7 @@ import java.util.Date;
 /**
  * Created by gy on 2018/6/2.
  */
+@Component
 public class DateParseUtil {
 
     public Date parseStringAsDate(String string) {

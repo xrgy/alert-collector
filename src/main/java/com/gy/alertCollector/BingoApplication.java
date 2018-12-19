@@ -1,6 +1,7 @@
 package com.gy.alertCollector;
 
 import com.gy.alertCollector.base.BaseRepositoryFactoryBean;
+import com.gy.alertCollector.util.ProperUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -13,6 +14,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(repositoryFactoryBeanClass = BaseRepositoryFactoryBean.class)
 public class BingoApplication {
     public static void main(String[] args){
+        ProperUtil.SetConfInfo();
         SpringApplication.run(BingoApplication.class,args);
     }
 }
