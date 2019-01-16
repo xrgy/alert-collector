@@ -55,7 +55,8 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
     public void insertOrUpdateAlert(List<WebhookAlertEntity> webHookAlertList) throws Exception {
         Map<Boolean,String> returnMap = new HashMap<>();
        webHookAlertList.forEach(webhookAlertEntity -> {
-            monitorService.getOperationMonitorEntity(webhookAlertEntity.getLabels().get("instance_id"))
+           //todo 修改监控实体的数据结构之后 这里需要修改
+            monitorService.getCommonMonitorRecord(webhookAlertEntity.getLabels().get("instance_id"))
                     .thenAccept(monitorOpt->{
                         if (monitorOpt.isPresent()){
                             //获取推送告警tag的哈希值
