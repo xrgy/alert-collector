@@ -2,6 +2,8 @@ package com.gy.alertCollector.service;
 
 
 import com.gy.alertCollector.entity.*;
+import com.gy.alertCollector.entity.topo.AlertAlarmInfo;
+import com.gy.alertCollector.entity.topo.TopoAlertView;
 
 import java.util.List;
 import java.util.Map;
@@ -20,4 +22,6 @@ public interface AlertCollectorService {
      * @throws Exception
      */
     public void insertOrUpdateAlert(List<WebhookAlertEntity> webHookAlertList) throws Exception;
+
+
 }

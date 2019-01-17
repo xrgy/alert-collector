@@ -1,12 +1,15 @@
 package com.gy.alertCollector.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gy.alertCollector.entity.AlertReceiveView;
 import com.gy.alertCollector.entity.TestEntity;
+import com.gy.alertCollector.entity.topo.TopoAlertView;
 import com.gy.alertCollector.service.AlertCollectorService;
 import com.gy.alertCollector.service.AlertService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,8 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 
 /**
@@ -72,4 +77,13 @@ public class AlertCollectorController {
         //返回{"0":3,"1":2,"2":1} severity:count key都是string
         return mapper.writeValueAsString(alertService.getSeverityCountByMonitor(monitorUuid));
     }
+
+    @RequestMapping("getAlertInfoByMonitorUuids")
+    @ResponseBody
+    public String getAlertInfoByMonitorUuids(@RequestBody String data) throws IOException {
+        List<String> view = mapper.readValue(data, new TypeReference<List<String>>() {});
+        return mapper.writeValueAsString(alertService.getAlertInfoByMonitorUuids(view));
+    }
+
+
 }
