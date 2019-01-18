@@ -20,4 +20,11 @@ public interface AlertService {
      * @return
      */
     List<AlertAlarmInfo> getAlertInfoByMonitorUuids(List<String> monitorUuids);
+
+    /**
+     * 删除监控记录级联告警删除该monitor的告警记录
+     * @param monitorUuid
+     * @return
+     */
+    boolean deleteAlertResourceBymonitoruuid(String monitorUuid);
 }

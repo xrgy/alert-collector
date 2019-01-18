@@ -68,4 +68,9 @@ public class AlertServiceImpl implements AlertService {
 
         return alarmInfos;
     }
+
+    @Override
+    public boolean deleteAlertResourceBymonitoruuid(String monitorUuid) {
+        return alertDao.deleteAlertResourceBymonitoruuid(monitorUuid);
+    }
 }

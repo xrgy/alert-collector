@@ -20,4 +20,5 @@ public interface AlertDao {
 
     List<AlertAlarmInfoSelect> getAlertInfoBymonitorUuids(List<String> monitorUuids);
 
+    boolean deleteAlertResourceBymonitoruuid(String monitorUuid);
 }

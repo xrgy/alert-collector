@@ -64,4 +64,13 @@ public class AlertDaoImpl implements AlertDao {
         }
         return rsList;
     }
+
+    @Override
+    public boolean deleteAlertResourceBymonitoruuid(String monitorUuid) {
+        String sql = "DELETE FROM AlertEntity WHERE monitorUuid =:monitorUuid";
+        int res = em.createQuery(sql)
+                .setParameter("monitorUuid", monitorUuid)
+                .executeUpdate();
+        return res > 0;
+    }
 }
