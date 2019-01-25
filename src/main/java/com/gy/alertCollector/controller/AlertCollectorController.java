@@ -69,6 +69,7 @@ public class AlertCollectorController {
         System.out.println(jb);
         //{"receiver":"","status":"","alerts":null,"groupLabels":null,"commonLabels":null,"commonAnnotations":null,"externalURL":"","version":"4","groupKey":"11111"}
         AlertReceiveView view = mapper.readValue(jb.toString(), AlertReceiveView.class);
+        service.insertOrUpdateAlert(view.getAlerts());
     }
 
     @RequestMapping("getAlertSeverityCountMap")

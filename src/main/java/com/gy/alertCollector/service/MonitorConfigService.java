@@ -1,6 +1,9 @@
 package com.gy.alertCollector.service;
 
 
+import com.gy.alertCollector.entity.monitorConfig.AlertCommonRule;
+import com.gy.alertCollector.entity.monitorConfig.Metrics;
+
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -9,6 +12,8 @@ import java.util.concurrent.CompletionStage;
  */
 public interface MonitorConfigService {
 
-    public CompletionStage<Optional<Object>> getAlertRuleByAlertName(String name);
+    public AlertCommonRule getAlertRuleByAlertName(String name, String ruleid);
+
+    public Metrics getMetricByUuid(String uuid);
 
 }

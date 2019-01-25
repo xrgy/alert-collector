@@ -38,17 +38,17 @@ public class AlertEntity {
     @Column(name = "resolved_status")
     private int resolvedStatus;
 
-    @Column(name = "summary")
-    private String summary;
+//    @Column(name = "summary")
+//    private String summary;
 
     @Column(name = "description")
     private String description;
 
     @Column(name = "current_value")
-    private String currentValue;
+    private double currentValue;
 
-    @Column(name = "threshold")
-    private String threshold;
+//    @Column(name = "threshold")
+//    private String threshold;
 
     @Column(name = "create_time")
     private Date createTime;

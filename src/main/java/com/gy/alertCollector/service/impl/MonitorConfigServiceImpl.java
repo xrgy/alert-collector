@@ -3,10 +3,10 @@ package com.gy.alertCollector.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gy.alertCollector.common.AlertEnum;
 import com.gy.alertCollector.entity.monitor.OperationMonitorEntity;
-import com.gy.alertCollector.entity.monitorConfig.AlertAvlRuleMonitorEntity;
-import com.gy.alertCollector.entity.monitorConfig.AlertPerfRuleMonitorEntity;
+import com.gy.alertCollector.entity.monitorConfig.*;
 import com.gy.alertCollector.service.MonitorConfigService;
 import com.gy.alertCollector.service.MonitorService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
@@ -24,13 +24,15 @@ import java.util.concurrent.CompletionStage;
 @Service
 public class MonitorConfigServiceImpl implements MonitorConfigService {
 
-    private String IP = "http://127.0.0.1";
-    private String PORT = "8086";
-    private String PREFIX = "monitorConfig";
-    private String AVLMONITOR_PATH = "avlRuleMonitor";
-    private String PERFMONITOR_PATH = "perfRuleMonitor";
+//    private String IP = "http://127.0.0.1";
+private static final String CONFIG_PORT = "8081";
+    private static final String MONITOR_PREFIX = "monitorConfig";
+    private String AVLMONITOR_PATH = "getAvlRuleByRuleUuid";
+    private String PERFMONITOR_PATH = "getPerfRuleByRuleUuid";
+    private String PATH_GET_METRIC = "getMetricByUuid";
     private String ONE = "one";
     private String TWO = "two";
+    private static final String HTTP="http://";
 
     @Autowired
     ObjectMapper mapper;
@@ -42,43 +44,66 @@ public class MonitorConfigServiceImpl implements MonitorConfigService {
     }
 
     private String monitorConfigPrefix() {
-        return IP + ":" + PORT + "/" + PREFIX + "/";
+        //        try {
+        String ip= "127.0.0.1";
+//            String ip = EtcdUtil.getClusterIpByServiceName("monitorconfig-core-service");
+        return HTTP+ip + ":" + CONFIG_PORT + "/" + MONITOR_PREFIX + "/";
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        return "";
     }
 
 
     @Override
-    public CompletionStage<Optional<Object>> getAlertRuleByAlertName(String name) {
-        if (name.endsWith(AlertEnum.AlertType.RULENAME_AVL.name())) {
-            return getAvlRuleByAlertName(name).thenApply(opt-> opt.map(alertEntity-> (Object) alertEntity));
+    public AlertCommonRule getAlertRuleByAlertName(String name, String ruleid) {
+        AlertCommonRule commonRule = new AlertCommonRule();
+        if (name.endsWith(AlertEnum.AlertType.RULENAME_AVL.value())) {
 
-        } else if (name.endsWith(AlertEnum.AlertType.RULENAME_PERF.name())) {
-            return getPerfRuleByAlertName(name).thenApply(opt-> opt.map(alertEntity-> (Object) alertEntity));
+            AlertAvlRuleEntity avlRuleEntity= getAvlRuleByAlertRuleUuid(ruleid);
+            BeanUtils.copyProperties(avlRuleEntity,commonRule);
+            return commonRule;
+        } else if (name.endsWith(AlertEnum.AlertType.RULENAME_PERF.value())) {
+            AlertPerfRuleEntity perfRuleEntity = getPerfRuleByAlertRuleUUid(ruleid);
+            BeanUtils.copyProperties(perfRuleEntity,commonRule);
+            Metrics metric = getMetricByUuid(commonRule.getMetricUuid());
+            if (metric!=null){
+                commonRule.setMetricDisplayUnit(metric.getMetricDisplayUnit());
+            }
+            return commonRule;
         }
         return null;
     }
 
-    private CompletionStage<Optional<AlertAvlRuleMonitorEntity>> getAvlRuleByAlertName(String name) {
-        return CompletableFuture.supplyAsync(() -> {
-            ResponseEntity<String> response = rest().getForEntity(monitorConfigPrefix() + AVLMONITOR_PATH + "?name=" + name, String.class);
-            try {
-                return Optional.ofNullable(mapper.readValue(response.getBody(), AlertAvlRuleMonitorEntity.class));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return Optional.empty();
-        });
+    @Override
+    public Metrics getMetricByUuid(String uuid) {
+        ResponseEntity<String> response = rest().getForEntity(monitorConfigPrefix() + PATH_GET_METRIC + "?uuid={1}", String.class, uuid);
+        try {
+            return mapper.readValue(response.getBody(), Metrics.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    private CompletionStage<Optional<AlertPerfRuleMonitorEntity>> getPerfRuleByAlertName(String name) {
-        return CompletableFuture.supplyAsync(() -> {
-            ResponseEntity<String> response = rest().getForEntity(monitorConfigPrefix() + PERFMONITOR_PATH + "?name=" + name, String.class);
-
-            try {
-                return Optional.ofNullable(mapper.readValue(response.getBody(), AlertPerfRuleMonitorEntity.class));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return Optional.empty();
-        });
+    private AlertAvlRuleEntity getAvlRuleByAlertRuleUuid(String uuid) {
+        ResponseEntity<String> response = rest().getForEntity(monitorConfigPrefix() + AVLMONITOR_PATH + "?uuid={1}", String.class, uuid);
+        try {
+            return mapper.readValue(response.getBody(), AlertAvlRuleEntity.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
+
+    private AlertPerfRuleEntity getPerfRuleByAlertRuleUUid(String uuid) {
+        ResponseEntity<String> response = rest().getForEntity(monitorConfigPrefix() + PERFMONITOR_PATH + "?uuid={1}", String.class, uuid);
+        try {
+            return mapper.readValue(response.getBody(), AlertPerfRuleEntity.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }

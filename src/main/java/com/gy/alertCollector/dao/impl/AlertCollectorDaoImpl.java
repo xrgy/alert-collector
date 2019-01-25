@@ -4,6 +4,7 @@ import com.gy.alertCollector.dao.AlertCollectorDao;
 import com.gy.alertCollector.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -69,8 +70,8 @@ public class AlertCollectorDaoImpl implements AlertCollectorDao {
     }
 
     @Override
-    public CompletionStage<Boolean> insertIntoAlert(AlertEntity alertEntity) {
-        return CompletableFuture.supplyAsync(()->{
+    @Transactional
+    public boolean insertIntoAlert(AlertEntity alertEntity) {
             try {
                 em.merge(alertEntity);
                 return true;
@@ -78,6 +79,5 @@ public class AlertCollectorDaoImpl implements AlertCollectorDao {
                 return false;
             }
 
-        });
     }
 }

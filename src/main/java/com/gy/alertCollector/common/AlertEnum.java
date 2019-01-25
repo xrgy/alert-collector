@@ -14,6 +14,9 @@ public interface AlertEnum {
        AlertResolvedType(String name) {
            this.name = name;
        }
+       public String value() {
+           return this.name;
+       }
    }
     public enum AlertType{
 
@@ -24,6 +27,9 @@ public interface AlertEnum {
         AlertType(String name) {
             this.name = name;
         }
+        public String value() {
+            return this.name;
+        }
     }
     public enum AlertI18n{
         AVL_NOTREACH("alert.rule.status.notreach"),
@@ -33,6 +39,9 @@ public interface AlertEnum {
 
         AlertI18n(String name) {
             this.name = name;
+        }
+        public String value() {
+            return this.name;
         }
     }
 }

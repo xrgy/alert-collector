@@ -5,6 +5,7 @@ import com.gy.alertCollector.dao.AlertCollectorDao;
 import com.gy.alertCollector.entity.*;
 import com.gy.alertCollector.entity.monitor.OperationMonitorEntity;
 import com.gy.alertCollector.entity.monitorConfig.AlertAvlRuleMonitorEntity;
+import com.gy.alertCollector.entity.monitorConfig.AlertCommonRule;
 import com.gy.alertCollector.entity.monitorConfig.AlertPerfRuleMonitorEntity;
 import com.gy.alertCollector.entity.topo.AlertAlarmInfo;
 import com.gy.alertCollector.entity.topo.TopoAlertView;
@@ -19,6 +20,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -59,7 +61,6 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
     public void insertOrUpdateAlert(List<WebhookAlertEntity> webHookAlertList) throws Exception {
         Map<Boolean, String> returnMap = new HashMap<>();
         webHookAlertList.forEach(webhookAlertEntity -> {
-            //todo 修改监控实体的数据结构之后 这里需要修改
             OperationMonitorEntity monitor = null;
             try {
                 monitor = monitorService.getCommonMonitorRecord(webhookAlertEntity.getLabels().get("instance_id"),
@@ -77,96 +78,105 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
                 CompletionStage<Optional<AlertEntity>> future = findByHashCode(status, webhookAlertHashCode, webhookTagHashCode);
                 String alertName = webhookAlertEntity.getLabels().get("alertname");
                 OperationMonitorEntity finalMonitor1 = monitor;
-                future.thenAccept(optional ->{
+                future.thenAccept(optional -> {
                     OperationMonitorEntity finalMonitor = finalMonitor1;
-                    monitorConfigService.getAlertRuleByAlertName(alertName)
-                        .thenAccept(alertRuleOpt -> {
+                    String ruleuuid = webhookAlertEntity.getLabels().get("rule_id");
+                    AlertCommonRule isPresentRule = monitorConfigService.getAlertRuleByAlertName(alertName, ruleuuid);
 
-                            //判断告警规则是否存在
-                            if (!alertRuleOpt.isPresent()) {
-//                                    returnMap.put(false,"findByAlertName is null");
-//                                    return CompletableFuture.supplyAsync(()->returnMap);
-                            }
-                            if (optional.isPresent()) {
-                                //重复告警
-                                AlertEntity alertEntity = optional.get();
-                                //都是针对未恢复的告警
-                                if (alertEntity.getResolvedStatus() == UNRESOLVED) {
-                                    String startsAt = webhookAlertEntity.getStartsAt();
-                                    Date startAt = dateParseUtil.parseStringAsDate(startsAt);
-                                    Long startTime = startAt.getTime() / 1000;
-                                    Long createTime = alertEntity.getCreateTime().getTime() / 1000;
-                                    //若是未恢复告警产生时间和数据库里的首次告警不同或者来的是已恢复告警，再更新告警内容
-                                    if (startTime != createTime || status.equals(AlertEnum.AlertResolvedType.RESOLVED.name())) {
-                                        //更新告警内容
-                                        Map<String, String> annotationsMap = webhookAlertEntity.getAnnotations();
+                    if (optional.isPresent()) {
+                        //重复告警
+                        AlertEntity alertEntity = optional.get();
+                        //都是针对未恢复的告警
+                        if (alertEntity.getResolvedStatus() == UNRESOLVED) {
+                            String startsAt = webhookAlertEntity.getStartsAt();
+                            Date startAt = dateParseUtil.parseStringAsDate(startsAt);
+                            Long startTime = startAt.getTime() / 1000;
+                            Long createTime = alertEntity.getCreateTime().getTime() / 1000;
+                            //若是未恢复告警产生时间和数据库里的首次告警不同或者来的是已恢复告警，再更新告警内容
+                            //现在看来未恢复告警产生时间相同，也可能value不同，需要更新告警值
+//                                    if (startTime != createTime || status.equals(AlertEnum.AlertResolvedType.RESOLVED.name())) {
+                            //更新告警内容
+                            Map<String, String> annotationsMap = webhookAlertEntity.getAnnotations();
 
-                                        String description = acxt.getMessage(annotationsMap.get("description"), convert2Description(
-                                                webhookAlertEntity, finalMonitor), Locale.CHINA);
-                                        alertEntity.setDescription(description);
-                                        if (status.equals(AlertEnum.AlertResolvedType.UNRESOLVED.name())) {
-                                            //新来的是未恢复告警，更新当前阈值和告警内容
-                                            alertEntity.setCurrentValue(annotationsMap.get("current_value"));
-                                            dao.insertIntoAlert(alertEntity);
+                            String description = acxt.getMessage("alert.rule.description." + annotationsMap.get("description"), convert2Description(
+                                    webhookAlertEntity, finalMonitor, isPresentRule), Locale.CHINA);
+                            alertEntity.setDescription(description);
+                            if (status.equals(AlertEnum.AlertResolvedType.UNRESOLVED.value())) {
+                                //新来的是未恢复告警，更新当前阈值和告警内容
+                                int unitLength = isPresentRule.getMetricDisplayUnit().length();
+                                String currentValueStr = annotationsMap.get("current_value");
+                                String currentvalue = currentValueStr.substring(0, currentValueStr.length() - unitLength);
+                                alertEntity.setCurrentValue(double2float2(currentvalue));
+                                dao.insertIntoAlert(alertEntity);
 //                                                        .thenCompose(val->{
 //                                                    returnMap.put(val,"update alert");
 //                                                    return CompletableFuture.supplyAsync(()->returnMap);
 
-                                        } else if (status.equals(AlertEnum.AlertResolvedType.RESOLVED.name())) {
-                                            //新来的是恢复告警，更新告警状态，恢复时间，当前阈值，告警内容
-                                            alertEntity.setCurrentValue(annotationsMap.get("current_value"));
-                                            alertEntity.setResolvedStatus(RESOLVED);
-                                            alertEntity.setResolvedTime(dateParseUtil.parseStringAsDate(webhookAlertEntity.getEndsAt()));
-                                            dao.insertIntoAlert(alertEntity);
+                            } else if (status.equals(AlertEnum.AlertResolvedType.RESOLVED.value())) {
+                                //新来的是恢复告警，更新告警状态，恢复时间，当前阈值，告警内容
+                                int unitLength = isPresentRule.getMetricDisplayUnit().length();
+                                String currentValueStr = annotationsMap.get("current_value");
+                                String currentvalue = currentValueStr.substring(0, currentValueStr.length() - unitLength);
+                                alertEntity.setCurrentValue(double2float2(currentvalue));
+                                alertEntity.setResolvedStatus(RESOLVED);
+                                alertEntity.setResolvedTime(dateParseUtil.parseStringAsDate(webhookAlertEntity.getEndsAt()));
+                                dao.insertIntoAlert(alertEntity);
 //                                                        .thenCompose(val->{
 //                                                    returnMap.put(val,"update alert");
 //                                                    return CompletableFuture.supplyAsync(()->returnMap);
 //                                                });
-                                        }
-                                    }
-                                }
-                            } else {
-                                //新告警插入数据库
-                                AlertEntity alertEntity = webhookAlertEntity2AlertEntity(webhookAlertEntity, finalMonitor, alertRuleOpt.get());
-                                //设置哈希值
-                                alertEntity.setAlertHashCode(webhookAlertHashCode);
-                                //设置tag哈希值
-                                alertEntity.setTagHashCode(webhookTagHashCode);
-                                //设置告警规则uuid
-                                alertEntity.setAlertRuleUuid(getAlertRuleUuid(alertRuleOpt.get(), alertName));
-                                //针对插入时为resolved且数据库不存在的告警处理
-                                if (status.equals(AlertEnum.AlertResolvedType.RESOLVED.name())) {
-                                    //针对插入已存在的告警时通过异常来处理已存在的告警，数据库哈希值列加unique约束
-                                    //已恢复告警设置已恢复时间及恢复状态，插入数据库
-                                    alertEntity.setResolvedTime(dateParseUtil.parseStringAsDate(webhookAlertEntity.getEndsAt()));
-                                    alertEntity.setResolvedStatus(RESOLVED);
-                                    try {
-                                        dao.insertIntoAlert(alertEntity);
+                            }
+//                                    }
+                        }
+                    } else {
+                        //判断告警规则是否存在
+                        if (isPresentRule == null) {
+//                                    returnMap.put(false,"findByAlertName is null");
+//                                    return CompletableFuture.supplyAsync(()->returnMap);
+                            //结束
+                            return;
+                        }
+                        //新告警插入数据库
+                        AlertEntity alertEntity = webhookAlertEntity2AlertEntity(webhookAlertEntity, finalMonitor, isPresentRule);
+                        //设置哈希值
+                        alertEntity.setAlertHashCode(webhookAlertHashCode);
+                        //设置tag哈希值
+                        alertEntity.setTagHashCode(webhookTagHashCode);
+                        //设置告警规则uuid
+                        alertEntity.setAlertRuleUuid(ruleuuid);
+                        //针对插入时为resolved且数据库不存在的告警处理
+                        if (status.equals(AlertEnum.AlertResolvedType.RESOLVED.value())) {
+                            //针对插入已存在的告警时通过异常来处理已存在的告警，数据库哈希值列加unique约束
+                            //已恢复告警设置已恢复时间及恢复状态，插入数据库
+                            alertEntity.setResolvedTime(dateParseUtil.parseStringAsDate(webhookAlertEntity.getEndsAt()));
+                            alertEntity.setResolvedStatus(RESOLVED);
+                            try {
+                                dao.insertIntoAlert(alertEntity);
 //                                                     .thenCompose(insertval->{
 //                                                returnMap.put(insertval,"insert resolved alert");
 //                                                return CompletableFuture.supplyAsync(()->returnMap);
 //                                            });
-                                    } catch (Exception e) {
+                            } catch (Exception e) {
 //                                            returnMap.put(false,"insert resolved alert exception");
 //                                            return CompletableFuture.supplyAsync(()->returnMap);
-                                    }
+                            }
 
-                                } else {
-                                    //未恢复告警插入数据库
-                                    alertEntity.setResolvedStatus(UNRESOLVED);
-                                    try {
-                                        dao.insertIntoAlert(alertEntity);
+                        } else {
+                            //未恢复告警插入数据库
+                            alertEntity.setResolvedStatus(UNRESOLVED);
+                            try {
+                                dao.insertIntoAlert(alertEntity);
 //                                                     .thenCompose(insertval->{
 //                                                returnMap.put(insertval,"insert unresolved alert");
 //                                                return CompletableFuture.supplyAsync(()->returnMap);
 //                                            });
-                                    } catch (Exception e) {
+                            } catch (Exception e) {
 //                                            returnMap.put(false,"insert unresolved alert exception");
 //                                            return CompletableFuture.supplyAsync(()->returnMap);
-                                    }
-                                }
                             }
-                        });
+                        }
+                    }
+
                 });
             } else {
 //                            returnMap.put(false,"monitor record is null");
@@ -178,61 +188,80 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
 
 
     private String getAlertRuleUuid(Object o, String name) {
-        if (name.endsWith(AlertEnum.AlertType.RULENAME_AVL.name())) {
+        if (name.endsWith(AlertEnum.AlertType.RULENAME_AVL.value())) {
             AlertAvlRuleMonitorEntity entity = (AlertAvlRuleMonitorEntity) o;
             return entity.getUuid();
 
-        } else if (name.endsWith(AlertEnum.AlertType.RULENAME_PERF.name())) {
+        } else if (name.endsWith(AlertEnum.AlertType.RULENAME_PERF.value())) {
             AlertPerfRuleMonitorEntity entity = (AlertPerfRuleMonitorEntity) o;
             return entity.getUuid();
         }
         return null;
     }
 
-    private AlertEntity webhookAlertEntity2AlertEntity(WebhookAlertEntity webhookAlertEntity, OperationMonitorEntity operationMonitorEntity,
-                                                       Object alertRuleOpt) {
+    private AlertEntity webhookAlertEntity2AlertEntity(WebhookAlertEntity webhookAlertEntity, OperationMonitorEntity operationMonitorEntity, AlertCommonRule commonRule) {
         AlertEntity entity = new AlertEntity();
         entity.setUuid(UUID.randomUUID().toString());
         entity.setMonitorUuid(webhookAlertEntity.getLabels().get("instance_id"));
         entity.setSeverity(convertSeverity2Num(webhookAlertEntity.getLabels().get("severity")));
         Map<String, String> annotationsMap = webhookAlertEntity.getAnnotations();
-        String description = acxt.getMessage(annotationsMap.get("description"), convert2Description(webhookAlertEntity,
-                operationMonitorEntity), Locale.CHINA);
+        String description = acxt.getMessage("alert.rule.description." + annotationsMap.get("description"), convert2Description(webhookAlertEntity,
+                operationMonitorEntity, commonRule), Locale.CHINA);
         entity.setDescription(description);
-        entity.setCurrentValue(annotationsMap.get("current_value"));
-        entity.setThreshold(annotationsMap.get("threshold"));
+        int unitLength = commonRule.getMetricDisplayUnit().length();
+        String currentValueStr = annotationsMap.get("current_value");
+        String currentvalue = currentValueStr.substring(0, currentValueStr.length() - unitLength);
+        entity.setCurrentValue(double2float2(currentvalue));
+//        entity.setThreshold(annotationsMap.get("threshold"));
         entity.setCreateTime(dateParseUtil.parseStringAsDate(webhookAlertEntity.getStartsAt()));
-        entity.setSummary(acxt.getMessage(annotationsMap.get("summary"), null, Locale.CHINA));
+//        entity.setSummary(acxt.getMessage(annotationsMap.get("summary"), null, Locale.CHINA));
         return entity;
 
     }
 
-    private Object[] convert2Description(WebhookAlertEntity webhookAlertEntity, OperationMonitorEntity operationMonitorEntity) {
+    private Object[] convert2Description(WebhookAlertEntity webhookAlertEntity, OperationMonitorEntity operationMonitorEntity, AlertCommonRule commonRule) {
         Object[] object = new Object[6];
         object[0] = operationMonitorEntity.getName();
         object[1] = webhookAlertEntity.getLabels().get("instance");
-        object[2] = webhookAlertEntity.getAnnotations().get("summary");
+        object[2] = acxt.getMessage("metric.description." + webhookAlertEntity.getAnnotations().get("description"), null, Locale.CHINA);
         String alertName = webhookAlertEntity.getLabels().get("alertname");
-        if (alertName.endsWith(AlertEnum.AlertType.RULENAME_AVL.name())) {
+        if (alertName.endsWith(AlertEnum.AlertType.RULENAME_AVL.value())) {
             if (webhookAlertEntity.getAnnotations().get("current_value").equals(UNREACH)) {
-                object[3] = acxt.getMessage(AlertEnum.AlertI18n.AVL_NOTREACH.name(), null, Locale.CHINA);
+                object[3] = acxt.getMessage(AlertEnum.AlertI18n.AVL_NOTREACH.value(), null, Locale.CHINA);
             }
-        } else if (alertName.endsWith(AlertEnum.AlertType.RULENAME_PERF.name())) {
+        } else if (alertName.endsWith(AlertEnum.AlertType.RULENAME_PERF.value())) {
             String currentValueStr = webhookAlertEntity.getAnnotations().get("current_value");
             String thresholdStr = webhookAlertEntity.getAnnotations().get("threshold");
-            double currentvalue = Double.valueOf(currentValueStr.substring(0, currentValueStr.length() - 1));
-            double threshold = Double.valueOf(thresholdStr.substring(0, thresholdStr.length() - 1));
+            int unitLength = commonRule.getMetricDisplayUnit().length();
+            double currentvalue = Double.valueOf(currentValueStr.substring(0, currentValueStr.length() - unitLength));
+            double threshold = Double.valueOf(thresholdStr.substring(0, thresholdStr.length() - unitLength));
             if (currentvalue >= threshold) {
-                object[3] = AlertEnum.AlertI18n.PERF_VALUE_OVERTHRESHOLD.name();
+                object[3] = acxt.getMessage(AlertEnum.AlertI18n.PERF_VALUE_OVERTHRESHOLD.value(), null, Locale.CHINA);
             } else {
-                object[4] = AlertEnum.AlertI18n.PERF_VALUE_BELOWTHRESHOLD.name();
+                object[3] = acxt.getMessage(AlertEnum.AlertI18n.PERF_VALUE_BELOWTHRESHOLD.value(), null, Locale.CHINA);
             }
-            object[4] = currentValueStr;
-            object[5] = thresholdStr;
+            object[4] = double2float22(currentvalue) + commonRule.getMetricDisplayUnit();
+            object[5] = double2float22(threshold) + commonRule.getMetricDisplayUnit();
         }
 
         return object;
 
+    }
+
+    private double double2float22(double d) {
+        BigDecimal b = new BigDecimal(d);
+//        float df = b.setScale(2, BigDecimal.ROUND_HALF_UP).floatValue();
+        double df = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+
+        return df;
+    }
+
+    private double double2float2(String d) {
+        BigDecimal b = new BigDecimal(d);
+//        float df = b.setScale(2, BigDecimal.ROUND_HALF_UP).floatValue();
+        double df = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+
+        return df;
     }
 
     private int convertSeverity2Num(String severity) {
@@ -283,11 +312,13 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
     }
 
     private CompletionStage<Optional<AlertEntity>> findByHashCode(String status, Integer hashCode, Integer tagHashCode) {
-        if (status.equals(AlertEnum.AlertResolvedType.UNRESOLVED.name())) {
+        if (status.equals(AlertEnum.AlertResolvedType.UNRESOLVED.value())) {
             return dao.getAlertRecordByTagHashCode(tagHashCode);
-        } else if (status.equals(AlertEnum.AlertResolvedType.RESOLVED.name())) {
+        } else if (status.equals(AlertEnum.AlertResolvedType.RESOLVED.value())) {
             return dao.getAlertRecordByHashCode(hashCode);
         }
         return null;
     }
+
+
 }

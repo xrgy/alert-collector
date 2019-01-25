@@ -34,5 +34,5 @@ public interface AlertCollectorDao {
      * @param alertEntity
      * @return
      */
-    public CompletionStage<Boolean> insertIntoAlert(AlertEntity alertEntity);
+    public boolean insertIntoAlert(AlertEntity alertEntity);
 }
