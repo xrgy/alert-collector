@@ -9,7 +9,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.hibernate.SQLQuery;
 import org.hibernate.transform.Transformers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -66,6 +68,8 @@ public class AlertDaoImpl implements AlertDao {
     }
 
     @Override
+    @Transactional
+    @Modifying
     public boolean deleteAlertResourceBymonitoruuid(String monitorUuid) {
         String sql = "DELETE FROM AlertEntity WHERE monitorUuid =:monitorUuid";
         int res = em.createQuery(sql)

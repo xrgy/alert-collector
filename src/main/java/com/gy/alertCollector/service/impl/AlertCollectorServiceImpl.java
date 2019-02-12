@@ -103,9 +103,9 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
                             alertEntity.setDescription(description);
                             if (status.equals(AlertEnum.AlertResolvedType.UNRESOLVED.value())) {
                                 //新来的是未恢复告警，更新当前阈值和告警内容
-                                int unitLength = isPresentRule.getMetricDisplayUnit().length();
-                                String currentValueStr = annotationsMap.get("current_value");
-                                String currentvalue = currentValueStr.substring(0, currentValueStr.length() - unitLength);
+//                                int unitLength = isPresentRule.getMetricDisplayUnit().length();
+                                String currentvalue = annotationsMap.get("current_value");
+//                                String currentvalue = currentValueStr.substring(0, currentValueStr.length() - unitLength);
                                 alertEntity.setCurrentValue(double2float2(currentvalue));
                                 dao.insertIntoAlert(alertEntity);
 //                                                        .thenCompose(val->{
@@ -114,9 +114,9 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
 
                             } else if (status.equals(AlertEnum.AlertResolvedType.RESOLVED.value())) {
                                 //新来的是恢复告警，更新告警状态，恢复时间，当前阈值，告警内容
-                                int unitLength = isPresentRule.getMetricDisplayUnit().length();
-                                String currentValueStr = annotationsMap.get("current_value");
-                                String currentvalue = currentValueStr.substring(0, currentValueStr.length() - unitLength);
+//                                int unitLength = isPresentRule.getMetricDisplayUnit().length();
+                                String currentvalue = annotationsMap.get("current_value");
+//                                String currentvalue = currentValueStr.substring(0, currentValueStr.length() - unitLength);
                                 alertEntity.setCurrentValue(double2float2(currentvalue));
                                 alertEntity.setResolvedStatus(RESOLVED);
                                 alertEntity.setResolvedTime(dateParseUtil.parseStringAsDate(webhookAlertEntity.getEndsAt()));
@@ -208,9 +208,9 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
         String description = acxt.getMessage("alert.rule.description." + annotationsMap.get("description"), convert2Description(webhookAlertEntity,
                 operationMonitorEntity, commonRule), Locale.CHINA);
         entity.setDescription(description);
-        int unitLength = commonRule.getMetricDisplayUnit().length();
-        String currentValueStr = annotationsMap.get("current_value");
-        String currentvalue = currentValueStr.substring(0, currentValueStr.length() - unitLength);
+//        int unitLength = commonRule.getMetricDisplayUnit().length();
+        String currentvalue = annotationsMap.get("current_value");
+//        String currentvalue = currentValueStr.substring(0, currentValueStr.length() - unitLength);
         entity.setCurrentValue(double2float2(currentvalue));
 //        entity.setThreshold(annotationsMap.get("threshold"));
         entity.setCreateTime(dateParseUtil.parseStringAsDate(webhookAlertEntity.getStartsAt()));
@@ -232,9 +232,9 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
         } else if (alertName.endsWith(AlertEnum.AlertType.RULENAME_PERF.value())) {
             String currentValueStr = webhookAlertEntity.getAnnotations().get("current_value");
             String thresholdStr = webhookAlertEntity.getAnnotations().get("threshold");
-            int unitLength = commonRule.getMetricDisplayUnit().length();
-            double currentvalue = Double.valueOf(currentValueStr.substring(0, currentValueStr.length() - unitLength));
-            double threshold = Double.valueOf(thresholdStr.substring(0, thresholdStr.length() - unitLength));
+//            int unitLength = commonRule.getMetricDisplayUnit().length();
+            double currentvalue = Double.valueOf(currentValueStr);
+            double threshold = Double.valueOf(thresholdStr);
             if (currentvalue >= threshold) {
                 object[3] = acxt.getMessage(AlertEnum.AlertI18n.PERF_VALUE_OVERTHRESHOLD.value(), null, Locale.CHINA);
             } else {
