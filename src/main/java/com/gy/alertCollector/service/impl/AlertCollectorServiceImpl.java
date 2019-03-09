@@ -63,7 +63,7 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
         webHookAlertList.forEach(webhookAlertEntity -> {
             OperationMonitorEntity monitor = null;
             try {
-                monitor = monitorService.getCommonMonitorRecord(webhookAlertEntity.getLabels().get("instance_id"),
+                monitor = monitorService.getCommonMonitorRecord(webhookAlertEntity.getLabels().get("job"),
                         webhookAlertEntity.getLabels().get("resource_type"));
             } catch (IOException e) {
                 e.printStackTrace();
@@ -81,8 +81,8 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
                 future.thenAccept(optional -> {
                     OperationMonitorEntity finalMonitor = finalMonitor1;
                     String ruleuuid = webhookAlertEntity.getLabels().get("rule_id");
-                    AlertCommonRule isPresentRule = monitorConfigService.getAlertRuleByAlertName(alertName, ruleuuid);
-
+//                    AlertCommonRule isPresentRule = monitorConfigService.getAlertRuleByAlertName(alertName, ruleuuid);
+                    AlertCommonRule isPresentRule = new AlertCommonRule();
                     if (optional.isPresent()) {
                         //重复告警
                         AlertEntity alertEntity = optional.get();
@@ -130,12 +130,13 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
                         }
                     } else {
                         //判断告警规则是否存在
-                        if (isPresentRule == null) {
+                        //todo mysql总是重启 把这个先去掉 不然插不进去
+//                        if (isPresentRule == null) {
 //                                    returnMap.put(false,"findByAlertName is null");
 //                                    return CompletableFuture.supplyAsync(()->returnMap);
                             //结束
-                            return;
-                        }
+//                            return;
+//                        }
                         //新告警插入数据库
                         AlertEntity alertEntity = webhookAlertEntity2AlertEntity(webhookAlertEntity, finalMonitor, isPresentRule);
                         //设置哈希值
@@ -186,6 +187,11 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
         });
     }
 
+    @Override
+    public List<AlertEntity> getAlertDetail(int severity, int resolve, String uuid) {
+        return dao.getAlertDetail(severity,resolve,uuid);
+    }
+
 
     private String getAlertRuleUuid(Object o, String name) {
         if (name.endsWith(AlertEnum.AlertType.RULENAME_AVL.value())) {
@@ -202,7 +208,7 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
     private AlertEntity webhookAlertEntity2AlertEntity(WebhookAlertEntity webhookAlertEntity, OperationMonitorEntity operationMonitorEntity, AlertCommonRule commonRule) {
         AlertEntity entity = new AlertEntity();
         entity.setUuid(UUID.randomUUID().toString());
-        entity.setMonitorUuid(webhookAlertEntity.getLabels().get("instance_id"));
+        entity.setMonitorUuid(webhookAlertEntity.getLabels().get("job"));
         entity.setSeverity(convertSeverity2Num(webhookAlertEntity.getLabels().get("severity")));
         Map<String, String> annotationsMap = webhookAlertEntity.getAnnotations();
         String description = acxt.getMessage("alert.rule.description." + annotationsMap.get("description"), convert2Description(webhookAlertEntity,
@@ -222,7 +228,7 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
     private Object[] convert2Description(WebhookAlertEntity webhookAlertEntity, OperationMonitorEntity operationMonitorEntity, AlertCommonRule commonRule) {
         Object[] object = new Object[6];
         object[0] = operationMonitorEntity.getName();
-        object[1] = webhookAlertEntity.getLabels().get("instance");
+        object[1] = operationMonitorEntity.getIp();
         object[2] = acxt.getMessage("metric.description." + webhookAlertEntity.getAnnotations().get("description"), null, Locale.CHINA);
         String alertName = webhookAlertEntity.getLabels().get("alertname");
         if (alertName.endsWith(AlertEnum.AlertType.RULENAME_AVL.value())) {
@@ -240,8 +246,8 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
             } else {
                 object[3] = acxt.getMessage(AlertEnum.AlertI18n.PERF_VALUE_BELOWTHRESHOLD.value(), null, Locale.CHINA);
             }
-            object[4] = double2float22(currentvalue) + commonRule.getMetricDisplayUnit();
-            object[5] = double2float22(threshold) + commonRule.getMetricDisplayUnit();
+            object[4] = double2float22(currentvalue) ;//+ commonRule.getMetricDisplayUnit();//todo
+            object[5] = double2float22(threshold) ;//+ commonRule.getMetricDisplayUnit();//todo
         }
 
         return object;

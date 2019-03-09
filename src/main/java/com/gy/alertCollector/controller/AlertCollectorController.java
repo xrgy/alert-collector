@@ -92,4 +92,9 @@ public class AlertCollectorController {
         return alertService.deleteAlertResourceBymonitoruuid(monitorUuid);
     }
 
+    @RequestMapping("getAlertDetail")
+    @ResponseBody
+    public String getAlertInfo(int severity, int resolve, String uuid) throws JsonProcessingException {
+        return mapper.writeValueAsString(service.getAlertDetail(severity,resolve,uuid));
+    }
 }

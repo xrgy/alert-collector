@@ -24,4 +24,5 @@ public interface AlertCollectorService {
     public void insertOrUpdateAlert(List<WebhookAlertEntity> webHookAlertList) throws Exception;
 
 
+    List<AlertEntity> getAlertDetail(int severity, int resolve, String uuid);
 }

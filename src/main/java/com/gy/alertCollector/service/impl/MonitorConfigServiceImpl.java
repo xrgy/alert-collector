@@ -6,6 +6,7 @@ import com.gy.alertCollector.entity.monitor.OperationMonitorEntity;
 import com.gy.alertCollector.entity.monitorConfig.*;
 import com.gy.alertCollector.service.MonitorConfigService;
 import com.gy.alertCollector.service.MonitorService;
+import com.gy.alertCollector.util.EtcdUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -44,14 +45,14 @@ private static final String CONFIG_PORT = "8081";
     }
 
     private String monitorConfigPrefix() {
-        //        try {
-        String ip= "127.0.0.1";
-//            String ip = EtcdUtil.getClusterIpByServiceName("monitorconfig-core-service");
+                try {
+//        String ip= "127.0.0.1";
+            String ip = EtcdUtil.getClusterIpByServiceName("monitorconfig-core-service");
         return HTTP+ip + ":" + CONFIG_PORT + "/" + MONITOR_PREFIX + "/";
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        return "";
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
 

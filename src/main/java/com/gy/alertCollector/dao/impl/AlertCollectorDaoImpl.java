@@ -80,4 +80,14 @@ public class AlertCollectorDaoImpl implements AlertCollectorDao {
             }
 
     }
+
+    @Override
+    public List<AlertEntity> getAlertDetail(int severity, int resolve, String uuid) {
+        String sql = "From AlertEntity Where monitorUuid =:monitoruuid AND severity =:severity AND resolvedStatus=:resolve";
+        return em.createQuery(sql, AlertEntity.class)
+                .setParameter("monitoruuid",uuid)
+                .setParameter("severity",severity)
+                .setParameter("resolve",resolve)
+                .getResultList();
+    }
 }
