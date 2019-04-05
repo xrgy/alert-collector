@@ -1,5 +1,51 @@
 [
   {
+    "receiver": "webhook",
+    "status": "firing",
+    "alerts": [{
+      "status": "firing",
+      "labels": {
+        "alertname": "rule_1acd827266c04095b41e6221d3f3b528193b0d3022c248d8b145c382c7d815f2_one_level_perf",
+        "instance": "47.94.157.199",
+        "instance_id": "1acd8272-66c0-4095-b41e-6221d3f3b528",
+        "job": "1acd8272-66c0-4095-b41e-6221d3f3b528",
+        "monitor": "codelab-monitor",
+        "resource_type": "MySQL",
+        "rule_id": "193b0d30-22c2-48d8-b145-c382c7d815f2",
+        "severity": "critical"
+      },
+      "annotations": {
+        "current_value": "3",
+        "description": "mysql_runningThread_mysql",
+        "threashold": "1"
+      },
+      "startsAt": "2019-01-25T10:36:04.60017188Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus-rc-lc14m:9091/graph?g0.expr=mysql_runningThread%7Binstance_id%3D%221acd8272-66c0-4095-b41e-6221d3f3b528%22%7D+%3E+1\u0026g0.tab=1"
+    }],
+    "groupLabels": {
+      "alertname": "rule_1acd827266c04095b41e6221d3f3b528193b0d3022c248d8b145c382c7d815f2_one_level_perf"
+    },
+    "commonLabels": {
+      "alertname": "rule_1acd827266c04095b41e6221d3f3b528193b0d3022c248d8b145c382c7d815f2_one_level_perf",
+      "instance": "47.94.157.199",
+      "instance_id": "1acd8272-66c0-4095-b41e-6221d3f3b528",
+      "job": "1acd8272-66c0-4095-b41e-6221d3f3b528",
+      "monitor": "codelab-monitor",
+      "resource_type": "MySQL",
+      "rule_id": "193b0d30-22c2-48d8-b145-c382c7d815f2",
+      "severity": "critical"
+    },
+    "commonAnnotations": {
+      "current_value": "3?",
+      "description": "mysql_runningThread_mysql",
+      "threashold": "1?"
+    },
+    "externalURL": "http://alertmanager-rc-6dhpv:9093",
+    "version": "4",
+    "groupKey": "{}:{alertname=\"rule_1acd827266c04095b41e6221d3f3b528193b0d3022c248d8b145c382c7d815f2_one_level_perf\"}"
+  }
+  ,{
     //webhook接收格式
     "receiver": "webhook",
     "status": "resolved",

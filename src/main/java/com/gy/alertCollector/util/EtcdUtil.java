@@ -11,8 +11,8 @@ import java.util.Map;
  * Created by gy on 2018/12/8.
  */
 public class EtcdUtil {
-//    private static final String IP="47.105.64.176";
-    private static final String IP="47.94.157.199";
+    private static final String IP="47.105.64.176";
+//    private static final String IP="47.94.157.199";
 
     //    private static final String IP="172.31.105.232";
     private static final String ETCD_PORT="2379";

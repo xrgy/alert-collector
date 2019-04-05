@@ -36,5 +36,7 @@ public interface AlertCollectorDao {
      */
     public boolean insertIntoAlert(AlertEntity alertEntity);
 
-    List<AlertEntity> getAlertDetail(int severity, int resolve, String uuid);
+    List<AlertEntity> getAlertDetail(AlertView view);
+
+    List<AlertEntity> getAlertDetailByStatus(AlertView view);
 }

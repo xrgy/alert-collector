@@ -82,12 +82,65 @@ public class AlertCollectorDaoImpl implements AlertCollectorDao {
     }
 
     @Override
-    public List<AlertEntity> getAlertDetail(int severity, int resolve, String uuid) {
-        String sql = "From AlertEntity Where monitorUuid =:monitoruuid AND severity =:severity AND resolvedStatus=:resolve";
-        return em.createQuery(sql, AlertEntity.class)
-                .setParameter("monitoruuid",uuid)
-                .setParameter("severity",severity)
-                .setParameter("resolve",resolve)
-                .getResultList();
+    public List<AlertEntity> getAlertDetail(AlertView view) {
+        String sql = "From AlertEntity Where monitorUuid =:monitoruuid";
+        if (("-1").equals(view.getResolve()) && ("-1").equals(view.getSeverity())){
+            //两个都为空
+            return em.createQuery(sql, AlertEntity.class)
+                    .setParameter("monitoruuid",view.getUuid())
+                    .getResultList();
+        }else if (("-1").equals(view.getResolve())){
+            //只有resolve为空
+            sql += " AND severity =:severity";
+            return em.createQuery(sql, AlertEntity.class)
+                    .setParameter("monitoruuid",view.getUuid())
+                    .setParameter("severity",Integer.parseInt(view.getSeverity()))
+                    .getResultList();
+        }else if (("-1").equals(view.getSeverity())){
+            //只有级别为空
+            sql += " AND resolvedStatus=:resolve";
+            return em.createQuery(sql, AlertEntity.class)
+                    .setParameter("monitoruuid",view.getUuid())
+                    .setParameter("resolve",Integer.parseInt(view.getResolve()))
+                    .getResultList();
+        }else {
+            //都不为空
+           sql += " AND severity =:severity AND resolvedStatus=:resolve";
+            return em.createQuery(sql, AlertEntity.class)
+                    .setParameter("monitoruuid",view.getUuid())
+                    .setParameter("severity",Integer.parseInt(view.getSeverity()))
+                    .setParameter("resolve",Integer.parseInt(view.getResolve()))
+                    .getResultList();
+        }
+
+    }
+
+    @Override
+    public List<AlertEntity> getAlertDetailByStatus(AlertView view) {
+        String sql = "From AlertEntity";
+        if (("-1").equals(view.getResolve()) && ("-1").equals(view.getSeverity())){
+            //两个都为空
+            return em.createQuery(sql, AlertEntity.class)
+                    .getResultList();
+        }else if (("-1").equals(view.getResolve())){
+            //只有resolve为空
+            sql += " Where severity =:severity";
+            return em.createQuery(sql, AlertEntity.class)
+                    .setParameter("severity",Integer.parseInt(view.getSeverity()))
+                    .getResultList();
+        }else if (("-1").equals(view.getSeverity())){
+            //只有级别为空
+            sql += " Where resolvedStatus=:resolve";
+            return em.createQuery(sql, AlertEntity.class)
+                    .setParameter("resolve",Integer.parseInt(view.getResolve()))
+                    .getResultList();
+        }else {
+            //都不为空
+            sql += " Where severity =:severity AND resolvedStatus=:resolve";
+            return em.createQuery(sql, AlertEntity.class)
+                    .setParameter("severity",Integer.parseInt(view.getSeverity()))
+                    .setParameter("resolve",Integer.parseInt(view.getResolve()))
+                    .getResultList();
+        }
     }
 }

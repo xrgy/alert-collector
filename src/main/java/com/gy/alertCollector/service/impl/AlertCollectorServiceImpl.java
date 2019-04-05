@@ -188,8 +188,11 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
     }
 
     @Override
-    public List<AlertEntity> getAlertDetail(int severity, int resolve, String uuid) {
-        return dao.getAlertDetail(severity,resolve,uuid);
+    public List<AlertEntity> getAlertDetail(AlertView view) {
+        if (("").equals(view.getUuid())){
+            return  dao.getAlertDetailByStatus(view);
+        }
+        return dao.getAlertDetail(view);
     }
 
 

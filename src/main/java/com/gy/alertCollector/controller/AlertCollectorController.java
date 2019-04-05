@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gy.alertCollector.entity.AlertReceiveView;
+import com.gy.alertCollector.entity.AlertView;
 import com.gy.alertCollector.entity.TestEntity;
 import com.gy.alertCollector.entity.topo.TopoAlertView;
 import com.gy.alertCollector.service.AlertCollectorService;
@@ -94,7 +95,8 @@ public class AlertCollectorController {
 
     @RequestMapping("getAlertDetail")
     @ResponseBody
-    public String getAlertInfo(int severity, int resolve, String uuid) throws JsonProcessingException {
-        return mapper.writeValueAsString(service.getAlertDetail(severity,resolve,uuid));
+    public String getAlertInfo(@RequestBody String data) throws IOException {
+        AlertView view = mapper.readValue(data, AlertView.class);
+        return mapper.writeValueAsString(service.getAlertDetail(view));
     }
 }
