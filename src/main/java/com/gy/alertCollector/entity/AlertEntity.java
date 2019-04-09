@@ -55,4 +55,7 @@ public class AlertEntity {
 
     @Column(name = "resolved_time")
     private Date resolvedTime;
+
+    @Column(name = "light_type")
+    private String lightType;
 }

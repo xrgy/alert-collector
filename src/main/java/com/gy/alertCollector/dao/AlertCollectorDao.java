@@ -39,4 +39,8 @@ public interface AlertCollectorDao {
     List<AlertEntity> getAlertDetail(AlertView view);
 
     List<AlertEntity> getAlertDetailByStatus(AlertView view);
+
+    List<AlertEntity> getAlertDetailByStatusAndLightType(AlertView view,List<String> lightTypeList);
+
+    List<AlertEntity> getAlertDetailByLightType(AlertView view,List<String> lightTypeList);
 }

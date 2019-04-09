@@ -31,9 +31,9 @@ public interface MonitorEnum {
 
         CASCLUSTER("cascluster"),
 
-        CVK("cvk"),
+        CVK("cas_cvk"),
 
-        VIRTUALMACHINE("virtualmachine"),
+        VIRTUALMACHINE("cas_vm"),
 
         K8S("k8s"),
 
@@ -58,9 +58,9 @@ public interface MonitorEnum {
 
         ROUTER("router"),
 
-        LB("LB"),
-
         FIREWALL("firewall"),
+
+        LB("LB"),
 
         MYSQL("MySQL"),
 
@@ -83,6 +83,29 @@ public interface MonitorEnum {
         private String value;
 
         LightTypeEnum(String msg) {
+            this.value = msg;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+    enum MiddleTypeEnum{
+
+        NETWORK_DEVICE("network_device"),
+
+        MIDDLEWARE("middleware"),
+
+        DATABASE("database"),
+
+        VIRTUALIZATION("virtualization"),
+
+        CONTAINER("container");
+
+
+        private String value;
+
+        MiddleTypeEnum(String msg) {
             this.value = msg;
         }
 

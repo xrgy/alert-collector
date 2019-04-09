@@ -1,19 +1,17 @@
 package com.gy.alertCollector.service.impl;
 
 import com.gy.alertCollector.common.AlertEnum;
+import com.gy.alertCollector.common.MonitorEnum;
 import com.gy.alertCollector.dao.AlertCollectorDao;
 import com.gy.alertCollector.entity.*;
 import com.gy.alertCollector.entity.monitor.OperationMonitorEntity;
 import com.gy.alertCollector.entity.monitorConfig.AlertAvlRuleMonitorEntity;
 import com.gy.alertCollector.entity.monitorConfig.AlertCommonRule;
 import com.gy.alertCollector.entity.monitorConfig.AlertPerfRuleMonitorEntity;
-import com.gy.alertCollector.entity.topo.AlertAlarmInfo;
-import com.gy.alertCollector.entity.topo.TopoAlertView;
 import com.gy.alertCollector.service.AlertCollectorService;
 import com.gy.alertCollector.service.MonitorConfigService;
 import com.gy.alertCollector.service.MonitorService;
 import com.gy.alertCollector.util.DateParseUtil;
-import org.apache.tomcat.util.buf.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -22,7 +20,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 
@@ -98,8 +95,8 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
                             //更新告警内容
                             Map<String, String> annotationsMap = webhookAlertEntity.getAnnotations();
 
-                            String description = acxt.getMessage("alert.rule.description." + annotationsMap.get("description"), convert2Description(
-                                    webhookAlertEntity, finalMonitor, isPresentRule), Locale.CHINA);
+                            String description = convert2Description(
+                                    webhookAlertEntity, finalMonitor, isPresentRule,annotationsMap.get("description"));
                             alertEntity.setDescription(description);
                             if (status.equals(AlertEnum.AlertResolvedType.UNRESOLVED.value())) {
                                 //新来的是未恢复告警，更新当前阈值和告警内容
@@ -189,10 +186,39 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
 
     @Override
     public List<AlertEntity> getAlertDetail(AlertView view) {
-        if (("").equals(view.getUuid())){
-            return  dao.getAlertDetailByStatus(view);
+
+
+        if (view.getLightType().equals("all") || view.getLightType()==null || view.getLightType().equals("")){
+            if (null==view.getUuid()||("").equals(view.getUuid())){
+                return  dao.getAlertDetailByStatus(view);
+            }
+            return dao.getAlertDetail(view);
+        }else {
+            //get bylighttype
+            List<String> lightTypeList = new ArrayList<>();
+            if (view.getLightType().equals(MonitorEnum.MiddleTypeEnum.NETWORK_DEVICE.value())) {
+                lightTypeList.add(MonitorEnum.LightTypeEnum.SWITCH.value());
+                lightTypeList.add(MonitorEnum.LightTypeEnum.ROUTER.value());
+                lightTypeList.add(MonitorEnum.LightTypeEnum.LB.value());
+                lightTypeList.add(MonitorEnum.LightTypeEnum.FIREWALL.value());
+            } else if (view.getLightType().equals(MonitorEnum.MiddleTypeEnum.DATABASE.value())) {
+                lightTypeList.add(MonitorEnum.LightTypeEnum.MYSQL.value());
+            } else if (view.getLightType().equals(MonitorEnum.MiddleTypeEnum.MIDDLEWARE.value())) {
+                lightTypeList.add(MonitorEnum.LightTypeEnum.TOMCAT.value());
+            } else if (view.getLightType().equals(MonitorEnum.MiddleTypeEnum.VIRTUALIZATION.value())) {
+                lightTypeList.add(MonitorEnum.LightTypeEnum.CAS.value());
+                lightTypeList.add(MonitorEnum.LightTypeEnum.CVK.value());
+                lightTypeList.add(MonitorEnum.LightTypeEnum.VIRTUALMACHINE.value());
+            } else if (view.getLightType().equals(MonitorEnum.MiddleTypeEnum.CONTAINER.value())) {
+                lightTypeList.add(MonitorEnum.LightTypeEnum.K8S.value());
+                lightTypeList.add(MonitorEnum.LightTypeEnum.K8SNODE.value());
+                lightTypeList.add(MonitorEnum.LightTypeEnum.K8SCONTAINER.value());
+            }
+            if (null==view.getUuid()||("").equals(view.getUuid())){
+                return  dao.getAlertDetailByStatusAndLightType(view,lightTypeList);
+            }
+            return dao.getAlertDetailByLightType(view,lightTypeList);
         }
-        return dao.getAlertDetail(view);
     }
 
 
@@ -211,11 +237,12 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
     private AlertEntity webhookAlertEntity2AlertEntity(WebhookAlertEntity webhookAlertEntity, OperationMonitorEntity operationMonitorEntity, AlertCommonRule commonRule) {
         AlertEntity entity = new AlertEntity();
         entity.setUuid(UUID.randomUUID().toString());
+        entity.setLightType(webhookAlertEntity.getLabels().get("resource_type"));
         entity.setMonitorUuid(webhookAlertEntity.getLabels().get("job"));
         entity.setSeverity(convertSeverity2Num(webhookAlertEntity.getLabels().get("severity")));
         Map<String, String> annotationsMap = webhookAlertEntity.getAnnotations();
-        String description = acxt.getMessage("alert.rule.description." + annotationsMap.get("description"), convert2Description(webhookAlertEntity,
-                operationMonitorEntity, commonRule), Locale.CHINA);
+        String description =  convert2Description(webhookAlertEntity,
+                operationMonitorEntity, commonRule, annotationsMap.get("description"));
         entity.setDescription(description);
 //        int unitLength = commonRule.getMetricDisplayUnit().length();
         String currentvalue = annotationsMap.get("current_value");
@@ -228,7 +255,9 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
 
     }
 
-    private Object[] convert2Description(WebhookAlertEntity webhookAlertEntity, OperationMonitorEntity operationMonitorEntity, AlertCommonRule commonRule) {
+
+
+    private String convert2Description(WebhookAlertEntity webhookAlertEntity, OperationMonitorEntity operationMonitorEntity, AlertCommonRule commonRule, String description) {
         Object[] object = new Object[6];
         object[0] = operationMonitorEntity.getName();
         object[1] = operationMonitorEntity.getIp();
@@ -237,23 +266,32 @@ public class AlertCollectorServiceImpl implements AlertCollectorService {
         if (alertName.endsWith(AlertEnum.AlertType.RULENAME_AVL.value())) {
             if (webhookAlertEntity.getAnnotations().get("current_value").equals(UNREACH)) {
                 object[3] = acxt.getMessage(AlertEnum.AlertI18n.AVL_NOTREACH.value(), null, Locale.CHINA);
+                return acxt.getMessage("alert.rule.description." + description, object, Locale.CHINA);
             }
         } else if (alertName.endsWith(AlertEnum.AlertType.RULENAME_PERF.value())) {
             String currentValueStr = webhookAlertEntity.getAnnotations().get("current_value");
             String thresholdStr = webhookAlertEntity.getAnnotations().get("threshold");
 //            int unitLength = commonRule.getMetricDisplayUnit().length();
             double currentvalue = Double.valueOf(currentValueStr);
-            double threshold = Double.valueOf(thresholdStr);
-            if (currentvalue >= threshold) {
-                object[3] = acxt.getMessage(AlertEnum.AlertI18n.PERF_VALUE_OVERTHRESHOLD.value(), null, Locale.CHINA);
-            } else {
-                object[3] = acxt.getMessage(AlertEnum.AlertI18n.PERF_VALUE_BELOWTHRESHOLD.value(), null, Locale.CHINA);
+            if (null==thresholdStr){
+                //
+                object[3] = double2float22(currentvalue);
+               return acxt.getMessage("alert.rule.description.nothreshold." + description, object, Locale.CHINA);
+            }else {
+                double threshold = Double.valueOf(thresholdStr);
+                if (currentvalue >= threshold) {
+                    object[3] = acxt.getMessage(AlertEnum.AlertI18n.PERF_VALUE_OVERTHRESHOLD.value(), null, Locale.CHINA);
+                } else {
+                    object[3] = acxt.getMessage(AlertEnum.AlertI18n.PERF_VALUE_BELOWTHRESHOLD.value(), null, Locale.CHINA);
+                }
+                object[4] = double2float22(currentvalue) ;//+ commonRule.getMetricDisplayUnit();//todo
+                object[5] = double2float22(threshold) ;//+ commonRule.getMetricDisplayUnit();//todo
+                return acxt.getMessage("alert.rule.description." + description, object, Locale.CHINA);
             }
-            object[4] = double2float22(currentvalue) ;//+ commonRule.getMetricDisplayUnit();//todo
-            object[5] = double2float22(threshold) ;//+ commonRule.getMetricDisplayUnit();//todo
+
         }
 
-        return object;
+        return "";
 
     }
 
